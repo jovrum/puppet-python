@@ -2,20 +2,9 @@
 
 Puppet module for installing and managing python, pip, virtualenvs and Gunicorn virtual hosts.
 
-===
-
 # Compatibility #
 
-* Puppet v3 (with and without the future parser)
-* Puppet v4
-
-## Ruby versions
-
-* 1.8.7
-* 1.9.3
-* 2.0.0
-* 2.1.0
-* 2.3.1
+See the test matrix in the Travis configuration.
 
 ## OS Distributions ##
 
