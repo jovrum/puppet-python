@@ -34,7 +34,7 @@ describe 'python::pip', :type => :define do
     describe "proxy as" do
       context "defaults to empty" do
         let (:params) {{ }}
-		#it { File.write('myclass.json', PSON.pretty_generate(catalogue)) }
+        #it { File.write('myclass.json', PSON.pretty_generate(catalogue)) }
         #it { is_expected.to contain_exec("pip_install_rpyc").without_command(/--proxy/) }
       end
       context "does not add proxy to search command if set to latest and proxy is unset" do

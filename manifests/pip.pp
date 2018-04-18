@@ -40,6 +40,10 @@
 # [*timeout*]
 #  The maximum time in seconds the "pip install" command should take. Default: 1800
 #
+# [*upgrade_strategy*]
+#  Pip upgrade strategy to use if upgrades are performed (only-if-needed or eager).
+#  By default uses the pip default which is version-dependent.
+#
 # [*install_args*]
 #  String. Any additional installation arguments that will be supplied
 #  when running pip install.
@@ -65,22 +69,23 @@
 # Fotis Gimian
 #
 define python::pip (
-  $pkgname         = $name,
-  $ensure          = present,
-  $virtualenv      = 'system',
-  $url             = false,
-  $owner           = 'root',
-  $group           = 'root',
-  $index           = false,
-  $proxy           = false,
-  $egg             = false,
-  $editable        = false,
-  $environment     = [],
-  $install_args    = '',
-  $uninstall_args  = '',
-  $timeout         = 1800,
-  $log_dir         = '/tmp',
-  $path            = ['/usr/local/bin','/usr/bin','/bin', '/usr/sbin'],
+  $pkgname                                                    = $name,
+  $ensure                                                     = present,
+  $virtualenv                                                 = 'system',
+  $url                                                        = false,
+  $owner                                                      = 'root',
+  $group                                                      = 'root',
+  $index                                                      = false,
+  $proxy                                                      = false,
+  $egg                                                        = false,
+  $editable                                                   = false,
+  $environment                                                = [],
+  Optional[Enum['eager', 'only-if-needed']] $upgrade_strategy = undef,
+  $install_args                                               = '',
+  $uninstall_args                                             = '',
+  $timeout                                                    = 1800,
+  $log_dir                                                    = '/tmp',
+  $path                                                       = ['/usr/local/bin','/usr/bin','/bin', '/usr/sbin'],
 ) {
 
   $python_provider = getparam(Class['python'], 'provider')
@@ -121,25 +126,29 @@ define python::pip (
   }
 
   $pypi_index = $index ? {
-      false   => '',
-      default => "--index-url=${index}",
-    }
+    false   => '',
+    default => "--index-url=${index}",
+  }
 
   $pypi_search_index = $index ? {
-      false   => '',
-      default => "--index=${index}",
-    }
+    false   => '',
+    default => "--index=${index}",
+  }
 
   $proxy_flag = $proxy ? {
     false    => '',
     default  => "--proxy=${proxy}",
   }
 
-  if $editable == true {
-    $install_editable = ' -e '
+  $install_editable = $editable ? {
+    true      => ' -e ',
+    default   => '',
   }
-  else {
-    $install_editable = ''
+
+  $upgrade_strategy_flag = $upgrade_strategy ? {
+    'eager'          => '--upgrade-strategy eager',
+    'only-if-needed' => '--upgrade-strategy only-if-needed',
+    default          => '',
   }
 
   #TODO: Do more robust argument checking, but below is a start
@@ -174,7 +183,7 @@ define python::pip (
   }
 
   # Note: the following pip install commands are only tested with pip
-  # version 10 and up
+  # version 10 and recent pip 9 versions
 
   # Explicit version out of VCS when PIP supported URL is provided
   if $source =~ /^(git\+|hg\+|bzr\+|svn\+)(http|https|ssh|svn|sftp|ftp|lp)(:\/\/).+$/ {
@@ -235,7 +244,7 @@ define python::pip (
       latest: {
         # Latest version.
         exec { "pip_install_${name}":
-          command     => "${pip_env} --log ${log}/pip.log install --upgrade ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}",
+          command     => "${pip_env} --log ${log}/pip.log install --upgrade ${upgrade_strategy_flag} ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}",
           unless      => "${pip_env} search ${pypi_search_index} ${proxy_flag} ${source} | grep -i INSTALLED.*latest",
           user        => $owner,
           group       => $group,
