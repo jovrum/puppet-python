@@ -187,11 +187,14 @@ define python::pip (
   # version, this makes sure we only use wheels if they are supported and
   # installed
 
+  # Note: the following pip install commands are only tested with pip
+  # version 10 and up
+
   # Explicit version out of VCS when PIP supported URL is provided
   if $source =~ /^(git\+|hg\+|bzr\+|svn\+)(http|https|ssh|svn|sftp|ftp|lp)(:\/\/).+$/ {
     if $ensure != present and $ensure != latest {
       exec { "pip_install_${name}":
-        command     => "${pip_env} wheel --help > /dev/null 2>&1 && { ${pip_env} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; { ${pip_env} --log ${log}/pip.log install ${install_args} \$wheel_support_flag ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}@${ensure}#egg=${egg_name} || ${pip_env} --log ${log}/pip.log install ${install_args} ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}@${ensure}#egg=${egg_name} ;}",
+        command     => "${pip_env} --log ${log}/pip.log install ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}@${ensure}#egg=${egg_name}",
         unless      => "${pip_env} freeze | grep -i -e ${grep_regex}",
         user        => $owner,
         group       => $group,
@@ -202,7 +205,7 @@ define python::pip (
       }
     } else {
       exec { "pip_install_${name}":
-        command     => "${pip_env} wheel --help > /dev/null 2>&1 && { ${pip_env} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; { ${pip_env} --log ${log}/pip.log install ${install_args} \$wheel_support_flag ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source} || ${pip_env} --log ${log}/pip.log install ${install_args} ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source} ;}",
+        command     => "${pip_env} --log ${log}/pip.log install ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}",
         unless      => "${pip_env} freeze | grep -i -e ${grep_regex}",
         user        => $owner,
         group       => $group,
@@ -218,7 +221,7 @@ define python::pip (
         # Version formats as per http://guide.python-distribute.org/specification.html#standard-versioning-schemes
         # Explicit version.
         exec { "pip_install_${name}":
-          command     => "${pip_env} wheel --help > /dev/null 2>&1 && { ${pip_env} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; { ${pip_env} --log ${log}/pip.log install ${install_args} \$wheel_support_flag ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}==${ensure} || ${pip_env} --log ${log}/pip.log install ${install_args} ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}==${ensure} ;}",
+          command     => "${pip_env} --log ${log}/pip.log install ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}==${ensure}",
           unless      => "${pip_env} freeze | grep -i -e ${grep_regex} || ${pip_env} list | sed -e 's/[ ]\\+/==/' -e 's/[()]//g' | grep -i -e ${grep_regex}",
           user        => $owner,
           group       => $group,
@@ -232,7 +235,7 @@ define python::pip (
       present: {
         # Whatever version is available.
         exec { "pip_install_${name}":
-          command     => "${pip_env} wheel --help > /dev/null 2>&1 && { ${pip_env} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; { ${pip_env} --log ${log}/pip.log install \$wheel_support_flag ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source} || ${pip_env} --log ${log}/pip.log install ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source} ;}",
+          command     => "${pip_env} --log ${log}/pip.log install ${pypi_index} ${proxy_flag} ${install_args} ${install_editable} ${source}",
           unless      => "${pip_env} freeze | grep -i -e ${grep_regex} || ${pip_env} list | sed -e 's/[ ]\\+/==/' -e 's/[()]//g' | grep -i -e ${grep_regex}",
           user        => $owner,
           group       => $group,
