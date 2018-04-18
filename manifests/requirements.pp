@@ -116,6 +116,25 @@ define python::requirements (
 
   # This will ensure multiple python::virtualenv definitions can share the
   # the same requirements file.
+  if defined(File[$requirements]) {
+    $exec_subscriptions = File[$requirements]
+  } else {
+    if $manage_requirements {
+      file { $requirements:
+        ensure  => present,
+        mode    => '0644',
+        owner   => $owner_real,
+        group   => $group_real,
+        audit   => content,
+        replace => false,
+        content => '# Puppet will install and/or update pip packages listed here',
+      }
+      $exec_subscriptions = File[$requirements]
+    } else {
+      $exec_subscriptions = undef
+    }
+  }
+
   if !defined(File[$requirements]) and $manage_requirements == true {
     file { $requirements:
       ensure  => present,
@@ -135,7 +154,7 @@ define python::requirements (
     timeout     => $timeout,
     cwd         => $cwd,
     user        => $owner,
-    subscribe   => File[$requirements],
+    subscribe   => $exec_subscriptions,
     environment => $environment,
   }
 }
