@@ -19,6 +19,7 @@
 # @param log_dir Log directory
 # @param egg The egg name to use
 # @param umask
+# @param upgrade_strategy
 #
 # @example Install Flask to /var/www/project1 using a proxy
 #   python::pip { 'flask':
@@ -48,26 +49,27 @@
 #   }
 #
 define python::pip (
-  String[1]                                         $pkgname        = $name,
-  Variant[Enum[present, absent, latest], String[1]] $ensure         = present,
-  Variant[Enum['system'], Stdlib::Absolutepath]     $virtualenv     = 'system',
-  String[1]                                         $pip_provider   = 'pip',
-  Variant[Boolean, String]                          $url            = false,
-  String[1]                                         $owner          = 'root',
-  Optional[String[1]]                               $group          = getvar('python::params::group'),
-  Optional[Python::Umask]                           $umask          = undef,
-  Variant[Boolean,String[1]]                        $index          = false,
-  Optional[Stdlib::HTTPUrl]                         $proxy          = undef,
-  Any                                               $egg            = false,
-  Boolean                                           $editable       = false,
-  Array                                             $environment    = [],
-  Array                                             $extras         = [],
-  String                                            $install_args   = '',
-  String                                            $uninstall_args = '',
-  Numeric                                           $timeout        = 1800,
-  String[1]                                         $log_dir        = '/tmp',
-  Array[String]                                     $path           = ['/usr/local/bin','/usr/bin','/bin', '/usr/sbin'],
-  String[1]                                         $exec_provider  = 'shell',
+  String[1]                                         $pkgname          = $name,
+  Variant[Enum[present, absent, latest], String[1]] $ensure           = present,
+  Variant[Enum['system'], Stdlib::Absolutepath]     $virtualenv       = 'system',
+  String[1]                                         $pip_provider     = 'pip',
+  Variant[Boolean, String]                          $url              = false,
+  String[1]                                         $owner            = 'root',
+  Optional[String[1]]                               $group            = getvar('python::params::group'),
+  Optional[Python::Umask]                           $umask            = undef,
+  Variant[Boolean,String[1]]                        $index            = false,
+  Optional[Stdlib::HTTPUrl]                         $proxy            = undef,
+  Any                                               $egg              = false,
+  Boolean                                           $editable         = false,
+  Array                                             $environment      = [],
+  Array                                             $extras           = [],
+  String                                            $install_args     = '',
+  String                                            $uninstall_args   = '',
+  Numeric                                           $timeout          = 1800,
+  String[1]                                         $log_dir          = '/tmp',
+  Array[String]                                     $path             = ['/usr/local/bin','/usr/bin','/bin', '/usr/sbin'],
+  String[1]                                         $exec_provider    = 'shell',
+  Optional[Enum['eager', 'only-if-needed']]         $upgrade_strategy = undef,
 ) {
   $python_provider = getparam(Class['python'], 'provider')
   $python_version  = getparam(Class['python'], 'version')
@@ -214,7 +216,13 @@ define python::pip (
         $grep_regex_pkgname_with_dashes = "^${pkgname_with_dashes}=="
         $installed_version              = join( ["${pip_env} freeze --all", " | grep -i -e ${grep_regex_pkgname_with_dashes} | cut -d= -f3", " | tr -d '[:space:]'",])
 
-        $command        = "${pip_install} --upgrade ${pip_common_args}"
+        $upgrade_strategy_args = $upgrade_strategy ? {
+          'eager'          => '--upgrade-strategy eager',
+          'only-if-needed' => '--upgrade-strategy only-if-needed',
+          default          => '',
+        }
+
+        $command        = "${pip_install} --upgrade ${upgrade_strategy_args} ${pip_common_args}"
         $unless_command = "[ \$(${latest_version}) = \$(${installed_version}) ]"
       }
 
